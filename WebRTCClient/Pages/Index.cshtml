@@ -1,0 +1,42 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Home page";
+}
+
+<title>WebRTC receive-only (no STUN)</title>
+<body>
+<h3>Paste Offer JSON from .NET</h3>
+<textarea id="offer" style="width:100%;height:140px"></textarea>
+<button id="start">Start (user gesture to allow audio)</button>
+<h3>Answer JSON (paste back into .NET)</h3>
+<textarea id="answer" style="width:100%;height:140px" readonly></textarea>
+<audio id="player" autoplay controls></audio>
+
+<script>
+  const pc = new RTCPeerConnection({
+    iceServers: [/*{ urls: 'stun:stun.l.google.com:19302' }*/]
+  });
+
+  const answerBox = document.getElementById('answer');
+const audio = document.getElementById('player');
+
+pc.addEventListener('track', e => {
+  if (e.streams && e.streams[0]) audio.srcObject = e.streams[0];
+});
+
+pc.addEventListener('icegatheringstatechange', () => {
+  if (pc.iceGatheringState === 'complete') {
+    answerBox.value = JSON.stringify(pc.localDescription);
+  }
+});
+
+document.getElementById('start').onclick = async () => {
+  const offer = JSON.parse(document.getElementById('offer').value);
+  await pc.setRemoteDescription(offer);
+  const answer = await pc.createAnswer();
+  await pc.setLocalDescription(answer);
+  await audio.play().catch(()=>{ /* maybe log? */ });
+};
+</script>
+</body>
